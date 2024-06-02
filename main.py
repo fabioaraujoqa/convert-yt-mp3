@@ -11,12 +11,12 @@ def on_progress(stream, chunk, bytes_remaining):
     pbar.n = bytes_downloaded
     pbar.refresh()
 
-def download_video(url, output_path):
+def download_audio(url, output_path):
     try:
         yt = YouTube(url, on_progress_callback=on_progress)
         video = yt.streams.filter(only_audio=True).first()
         global pbar
-        pbar = tqdm(total=video.filesize, unit='B', unit_scale=True, desc='Downloading')
+        pbar = tqdm(total=video.filesize, unit='B', unit_scale=True, desc='Downloading Audio')
         downloaded_file = video.download(output_path=output_path)
         pbar.close()
         print(f"Downloaded: {downloaded_file}")
@@ -37,14 +37,34 @@ def convert_to_mp3(file_path):
         print(f"Error: {e}")
         return None
 
-def download_and_convert(url, output_path):
-    video_path = download_video(url, output_path)
-    if video_path:
-        convert_to_mp3(video_path)
+def download_video(url, output_path):
+    try:
+        yt = YouTube(url, on_progress_callback=on_progress)
+        video = yt.streams.get_highest_resolution()
+        global pbar
+        pbar = tqdm(total=video.filesize, unit='B', unit_scale=True, desc='Downloading Video')
+        downloaded_file = video.download(output_path=output_path)
+        pbar.close()
+        print(f"Downloaded: {downloaded_file}")
+        return downloaded_file
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+def download_and_convert(url, output_path, download_type):
+    if download_type == 'mp3':
+        video_path = download_audio(url, output_path)
+        if video_path:
+            convert_to_mp3(video_path)
+    elif download_type == 'mp4':
+        download_video(url, output_path)
+    else:
+        print("Invalid download type selected.")
 
 if __name__ == "__main__":
     url = input("Enter the YouTube URL: ")
+    download_type = input("Enter download type (mp3/mp4): ").strip().lower()
     output_path = os.path.expanduser("~/Downloads")
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-    download_and_convert(url, output_path)
+    download_and_convert(url, output_path, download_type)
